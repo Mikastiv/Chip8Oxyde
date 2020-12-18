@@ -2,10 +2,12 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
+use std::collections::HashMap;
 
 use chip8::Chip8;
 
 mod chip8;
+mod config;
 
 fn main() {
     let mut chip8 = Chip8::new();
@@ -14,9 +16,9 @@ fn main() {
     let video_subsystem = sdl_context.video().unwrap();
     let window = video_subsystem
         .window(
-            chip8::WINDOW_TITLE,
-            chip8::CHIP8_WIDTH * chip8::CHIP8_WINDOW_SCALE_FACTOR,
-            chip8::CHIP8_HEIGHT * chip8::CHIP8_WINDOW_SCALE_FACTOR,
+            config::WINDOW_TITLE,
+            config::CHIP8_WIDTH * config::CHIP8_WINDOW_SCALE_FACTOR,
+            config::CHIP8_HEIGHT * config::CHIP8_WINDOW_SCALE_FACTOR,
         )
         .position_centered()
         .build()
@@ -41,6 +43,13 @@ fn main() {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => break 'running,
+                Event::KeyDown {
+                    keycode: Some(key), ..
+                } => chip8.keyboard.key_down(key),
+
+                Event::KeyUp {
+                    keycode: Some(key), ..
+                } => chip8.keyboard.key_up(key),
                 _ => {}
             }
         }
@@ -58,6 +67,4 @@ fn main() {
 
         canvas.present();
     }
-
-    println!("Hello, world!");
 }
