@@ -1,5 +1,6 @@
 pub const WINDOW_TITLE: &str = "Chip8 Window";
 pub const CHIP8_MEMORY_SIZE: usize = 0x1000;
+pub const CHIP8_PROGRAM_LOAD_ADDRESS: usize = 0x200;
 pub const CHIP8_WIDTH: u32 = 64;
 pub const CHIP8_HEIGHT: u32 = 32;
 pub const CHIP8_WINDOW_SCALE_FACTOR: u32 = 20;

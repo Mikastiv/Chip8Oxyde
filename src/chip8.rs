@@ -1,6 +1,9 @@
+use std::error::Error;
+
 use crate::config;
 use audio::SquareWave;
 use character::{Character, DEFAULT_CHARACTER_SET};
+use error::Chip8Error;
 use keyboard::Keyboard;
 use registers::Registers;
 use screen::Screen;
@@ -8,6 +11,7 @@ use sdl2::audio::AudioDevice;
 
 pub mod audio;
 pub mod character;
+pub mod error;
 mod keyboard;
 mod registers;
 mod screen;
@@ -36,6 +40,20 @@ impl Chip8 {
             audio_device,
             audio_playing: false,
         }
+    }
+
+    pub fn exec(&mut self, opcode: u16) {}
+
+    pub fn load(&mut self, buf: &[u8]) -> Result<(), Chip8Error> {
+        if buf.len() + config::CHIP8_PROGRAM_LOAD_ADDRESS >= config::CHIP8_MEMORY_SIZE {
+            return Err(Chip8Error::ProgramTooLarge);
+        }
+
+        self.memory
+            [config::CHIP8_PROGRAM_LOAD_ADDRESS..config::CHIP8_PROGRAM_LOAD_ADDRESS + buf.len()]
+            .copy_from_slice(buf);
+
+        Ok(())
     }
 
     pub fn push(&mut self, val: u16) {
@@ -71,7 +89,7 @@ impl Chip8 {
 
             self.registers.st -= 1;
             return true;
-        } 
+        }
 
         if self.audio_playing && self.registers.st == 0 {
             self.audio_playing = false;
