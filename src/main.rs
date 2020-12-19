@@ -53,7 +53,8 @@ fn main() {
         )
         .unwrap();
 
-    let mut duration = std::time::Duration::from_secs(0);
+    let mut dt_duration = std::time::Duration::from_secs(0);
+    let mut st_duration = std::time::Duration::from_secs(0);
 
     'running: loop {
         let loop_start = std::time::Instant::now();
@@ -92,10 +93,16 @@ fn main() {
         canvas.copy(&texture, None, None).unwrap();
         canvas.present();
 
-        duration += std::time::Instant::now() - loop_start;
+        let time_passed = std::time::Instant::now() - loop_start;
+        dt_duration += time_passed;
+        st_duration += time_passed;
 
-        if chip8.update_delay_timer(duration.as_secs_f64()) {
-            duration = std::time::Duration::from_secs(0);
+        if chip8.update_delay_timer(dt_duration.as_secs_f64()) {
+            dt_duration = std::time::Duration::from_secs(0);
+        }
+
+        if chip8.update_sound_timer(st_duration.as_secs_f64()) {
+            st_duration = std::time::Duration::from_secs(0);
         }
     }
 }
