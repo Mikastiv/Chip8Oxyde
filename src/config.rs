@@ -7,3 +7,4 @@ pub const CHIP8_DATA_REGISTER_COUNT: usize = 16;
 pub const CHIP8_STACK_DEPTH: usize = 16;
 pub const CHIP8_KEY_COUNT: usize = 16;
 pub const CHIP8_CHARACTER_SET_SIZE: usize = 80;
+pub const CHIP8_DELAY_TIMER_FREQ: f64 = 1.0 / 60.0;

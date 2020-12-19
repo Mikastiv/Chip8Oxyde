@@ -47,6 +47,15 @@ impl Chip8 {
             .draw_sprite(x, y, &self.memory[c as usize..c as usize + 5]);
     }
 
+    pub fn update_delay_timer(&mut self, delta: f64) -> bool {
+        if delta >= config::CHIP8_DELAY_TIMER_FREQ && self.registers.dt > 0 {
+            self.registers.dt -= 1;
+            return true;
+        }
+
+        false
+    }
+
     pub fn keyboard(&self) -> &Keyboard {
         &self.keyboard
     }

@@ -10,7 +10,8 @@ mod config;
 
 fn main() {
     let mut chip8 = Chip8::new();
-    
+    chip8.registers.dt = 255;
+
     chip8.draw_character(0, 0, Character::Num0);
     chip8.draw_character(8, 0, Character::Num1);
     chip8.draw_character(16, 0, Character::Num2);
@@ -27,7 +28,7 @@ fn main() {
     chip8.draw_character(8, 24, Character::D);
     chip8.draw_character(16, 24, Character::E);
     chip8.draw_character(24, 24, Character::F);
-    
+
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
     let window = video_subsystem
@@ -52,7 +53,11 @@ fn main() {
         )
         .unwrap();
 
+    let mut duration = std::time::Duration::from_secs(0);
+
     'running: loop {
+        let loop_start = std::time::Instant::now();
+
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
 
@@ -86,5 +91,11 @@ fn main() {
         // Draw frame texture to window
         canvas.copy(&texture, None, None).unwrap();
         canvas.present();
+
+        duration += std::time::Instant::now() - loop_start;
+
+        if chip8.update_delay_timer(duration.as_secs_f64()) {
+            duration = std::time::Duration::from_secs(0);
+        }
     }
 }
