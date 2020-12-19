@@ -2,6 +2,7 @@ use crate::config::CHIP8_KEY_COUNT;
 use sdl2::keyboard::Keycode;
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct Keyboard {
     key_states: [bool; CHIP8_KEY_COUNT],
     key_map: HashMap<Keycode, usize>,

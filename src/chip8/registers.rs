@@ -1,5 +1,6 @@
 use crate::config::CHIP8_DATA_REGISTER_COUNT;
 
+#[derive(Debug)]
 pub struct Registers {
     pub v: [u8; CHIP8_DATA_REGISTER_COUNT],
     pub i: u16,
