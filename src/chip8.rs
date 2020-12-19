@@ -1,10 +1,10 @@
 use crate::config;
+use audio::SquareWave;
 use character::{Character, DEFAULT_CHARACTER_SET};
 use keyboard::Keyboard;
 use registers::Registers;
 use screen::Screen;
-use sdl2::audio::{AudioCallback, AudioSpec};
-use audio::SquareWave;
+use sdl2::audio::AudioDevice;
 
 pub mod audio;
 pub mod character;
@@ -12,17 +12,18 @@ mod keyboard;
 mod registers;
 mod screen;
 
-#[derive(Debug)]
 pub struct Chip8 {
     pub memory: [u8; config::CHIP8_MEMORY_SIZE],
     pub registers: Registers,
     stack: [u16; config::CHIP8_STACK_DEPTH],
     keyboard: Keyboard,
     screen: Screen,
+    audio_device: AudioDevice<SquareWave>,
+    audio_playing: bool,
 }
 
 impl Chip8 {
-    pub fn new() -> Self {
+    pub fn new(audio_device: AudioDevice<SquareWave>) -> Self {
         let mut memory = [0; config::CHIP8_MEMORY_SIZE];
         memory[..config::CHIP8_CHARACTER_SET_SIZE].copy_from_slice(&DEFAULT_CHARACTER_SET[..]);
 
@@ -32,6 +33,8 @@ impl Chip8 {
             stack: [0; config::CHIP8_STACK_DEPTH],
             keyboard: Keyboard::new(),
             screen: Screen::new(),
+            audio_device,
+            audio_playing: false,
         }
     }
 
@@ -61,11 +64,18 @@ impl Chip8 {
 
     pub fn update_sound_timer(&mut self, delta: f64) -> bool {
         if delta >= config::CHIP8_SOUND_TIMER_FREQ && self.registers.st > 0 {
-            let duration =
-                (config::CHIP8_SOUND_TIMER_FREQ / 1000.0).round() as u32 * self.registers.st as u32;
-            // TODO: output sound
-            self.registers.st = 0;
+            if !self.audio_playing {
+                self.audio_playing = true;
+                self.audio_device.resume();
+            }
+
+            self.registers.st -= 1;
             return true;
+        } 
+
+        if self.audio_playing && self.registers.st == 0 {
+            self.audio_playing = false;
+            self.audio_device.pause();
         }
 
         false

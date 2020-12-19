@@ -11,8 +11,48 @@ mod chip8;
 mod config;
 
 fn main() {
-    let mut chip8 = Chip8::new();
-    chip8.registers.dt = 255;
+    
+    let sdl_context = sdl2::init().unwrap();
+    let video_subsystem = sdl_context.video().unwrap();
+    let audio_subsystem = sdl_context.audio().unwrap();
+    let window = video_subsystem
+    .window(
+        config::WINDOW_TITLE,
+        config::CHIP8_WIDTH * config::CHIP8_WINDOW_SCALE_FACTOR,
+        config::CHIP8_HEIGHT * config::CHIP8_WINDOW_SCALE_FACTOR,
+    )
+    .position_centered()
+    .build()
+    .unwrap();
+    
+    let mut canvas = window.into_canvas().build().unwrap();
+    let mut event_pump = sdl_context.event_pump().unwrap();
+    
+    let texture_creator = canvas.texture_creator();
+    let mut texture = texture_creator
+    .create_texture_streaming(
+        PixelFormatEnum::RGB24,
+        config::CHIP8_WIDTH,
+        config::CHIP8_HEIGHT,
+    )
+    .unwrap();
+    
+    let audio_spec = AudioSpecDesired {
+        freq: Some(44100),
+        channels: Some(1),
+        samples: None,
+    };
+    
+    let audio_device = audio_subsystem
+    .open_playback(None, &audio_spec, |spec| chip8::audio::SquareWave {
+        phase_inc: 440.0 / spec.freq as f32,
+        phase: 0.0,
+        volume: 0.05,
+    })
+    .unwrap();
+
+    let mut chip8 = Chip8::new(audio_device);
+    chip8.registers.st = 255;
 
     chip8.draw_character(0, 0, Character::Num0);
     chip8.draw_character(8, 0, Character::Num1);
@@ -30,45 +70,6 @@ fn main() {
     chip8.draw_character(8, 24, Character::D);
     chip8.draw_character(16, 24, Character::E);
     chip8.draw_character(24, 24, Character::F);
-
-    let sdl_context = sdl2::init().unwrap();
-    let video_subsystem = sdl_context.video().unwrap();
-    let audio_subsystem = sdl_context.audio().unwrap();
-    let window = video_subsystem
-        .window(
-            config::WINDOW_TITLE,
-            config::CHIP8_WIDTH * config::CHIP8_WINDOW_SCALE_FACTOR,
-            config::CHIP8_HEIGHT * config::CHIP8_WINDOW_SCALE_FACTOR,
-        )
-        .position_centered()
-        .build()
-        .unwrap();
-
-    let mut canvas = window.into_canvas().build().unwrap();
-    let mut event_pump = sdl_context.event_pump().unwrap();
-
-    let texture_creator = canvas.texture_creator();
-    let mut texture = texture_creator
-        .create_texture_streaming(
-            PixelFormatEnum::RGB24,
-            config::CHIP8_WIDTH,
-            config::CHIP8_HEIGHT,
-        )
-        .unwrap();
-
-    let audio_spec = AudioSpecDesired {
-        freq: Some(44100),
-        channels: Some(1),
-        samples: None,
-    };
-
-    let audio = audio_subsystem
-        .open_playback(None, &audio_spec, |spec| chip8::audio::SquareWave {
-            phase_inc: 440.0 / spec.freq as f32,
-            phase: 0.0,
-            volume: 0.25,
-        })
-        .unwrap();
 
     let mut dt_duration = Duration::from_secs(0);
     let mut st_duration = Duration::from_secs(0);
@@ -96,9 +97,6 @@ fn main() {
                 _ => {}
             }
         }
-
-        audio.resume();
-        std::thread::sleep(Duration::from_millis(2000));
 
         // Draw frame on a SDL texture
         texture
