@@ -1,6 +1,8 @@
+use sdl2::audio::AudioSpecDesired;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::{Color, PixelFormatEnum};
+use std::time::{Duration, Instant};
 
 use chip8::character::Character;
 use chip8::Chip8;
@@ -31,6 +33,7 @@ fn main() {
 
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
+    let audio_subsystem = sdl_context.audio().unwrap();
     let window = video_subsystem
         .window(
             config::WINDOW_TITLE,
@@ -53,11 +56,25 @@ fn main() {
         )
         .unwrap();
 
-    let mut dt_duration = std::time::Duration::from_secs(0);
-    let mut st_duration = std::time::Duration::from_secs(0);
+    let audio_spec = AudioSpecDesired {
+        freq: Some(44100),
+        channels: Some(1),
+        samples: None,
+    };
+
+    let audio = audio_subsystem
+        .open_playback(None, &audio_spec, |spec| chip8::audio::SquareWave {
+            phase_inc: 440.0 / spec.freq as f32,
+            phase: 0.0,
+            volume: 0.25,
+        })
+        .unwrap();
+
+    let mut dt_duration = Duration::from_secs(0);
+    let mut st_duration = Duration::from_secs(0);
 
     'running: loop {
-        let loop_start = std::time::Instant::now();
+        let loop_start = Instant::now();
 
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
@@ -80,6 +97,9 @@ fn main() {
             }
         }
 
+        audio.resume();
+        std::thread::sleep(Duration::from_millis(2000));
+
         // Draw frame on a SDL texture
         texture
             .update(
@@ -93,16 +113,16 @@ fn main() {
         canvas.copy(&texture, None, None).unwrap();
         canvas.present();
 
-        let time_passed = std::time::Instant::now() - loop_start;
+        let time_passed = Instant::now() - loop_start;
         dt_duration += time_passed;
         st_duration += time_passed;
 
         if chip8.update_delay_timer(dt_duration.as_secs_f64()) {
-            dt_duration = std::time::Duration::from_secs(0);
+            dt_duration = Duration::from_secs(0);
         }
 
         if chip8.update_sound_timer(st_duration.as_secs_f64()) {
-            st_duration = std::time::Duration::from_secs(0);
+            st_duration = Duration::from_secs(0);
         }
     }
 }

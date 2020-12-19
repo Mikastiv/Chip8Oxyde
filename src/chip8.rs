@@ -3,7 +3,10 @@ use character::{Character, DEFAULT_CHARACTER_SET};
 use keyboard::Keyboard;
 use registers::Registers;
 use screen::Screen;
+use sdl2::audio::{AudioCallback, AudioSpec};
+use audio::SquareWave;
 
+pub mod audio;
 pub mod character;
 mod keyboard;
 mod registers;
