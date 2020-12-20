@@ -7,7 +7,6 @@ use std::fs::File;
 use std::io::{Error, Read};
 use std::time::{Duration, Instant};
 
-use chip8::character::Character;
 use chip8::Chip8;
 
 mod chip8;
@@ -56,15 +55,6 @@ fn main() {
     let mut canvas = window.into_canvas().build().unwrap();
     let mut event_pump = sdl_context.event_pump().unwrap();
 
-    let texture_creator = canvas.texture_creator();
-    let mut texture = texture_creator
-        .create_texture_streaming(
-            PixelFormatEnum::RGB24,
-            config::CHIP8_WIDTH,
-            config::CHIP8_HEIGHT,
-        )
-        .unwrap();
-
     let audio_spec = AudioSpecDesired {
         freq: Some(44100),
         channels: Some(1),
@@ -79,79 +69,7 @@ fn main() {
         })
         .unwrap();
 
-    let mut chip8 = Chip8::new(audio_device);
+    let mut chip8 = Chip8::new(canvas, audio_device);
     chip8.load(&program_buffer).unwrap();
-
-    chip8.draw_character(0, 0, Character::Num0);
-    chip8.draw_character(8, 0, Character::Num1);
-    chip8.draw_character(16, 0, Character::Num2);
-    chip8.draw_character(24, 0, Character::Num3);
-    chip8.draw_character(0, 8, Character::Num4);
-    chip8.draw_character(8, 8, Character::Num5);
-    chip8.draw_character(16, 8, Character::Num6);
-    chip8.draw_character(24, 8, Character::Num7);
-    chip8.draw_character(0, 16, Character::Num8);
-    chip8.draw_character(8, 16, Character::Num9);
-    chip8.draw_character(16, 16, Character::A);
-    chip8.draw_character(24, 16, Character::B);
-    chip8.draw_character(0, 24, Character::C);
-    chip8.draw_character(8, 24, Character::D);
-    chip8.draw_character(16, 24, Character::E);
-    chip8.draw_character(24, 24, Character::F);
-
-    let mut dt_duration = Duration::from_secs(0);
-    let mut st_duration = Duration::from_secs(0);
-
-    'running: loop {
-        let loop_start = Instant::now();
-
-        canvas.set_draw_color(Color::RGB(0, 0, 0));
-        canvas.clear();
-
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => break 'running,
-                Event::KeyDown {
-                    keycode: Some(key), ..
-                } => chip8.keyboard_mut().key_down(key),
-
-                Event::KeyUp {
-                    keycode: Some(key), ..
-                } => chip8.keyboard_mut().key_up(key),
-                _ => {}
-            }
-        }
-
-        // Draw frame on a SDL texture
-        texture
-            .update(
-                None,
-                chip8.screen().pixel_colors(),
-                config::CHIP8_WIDTH as usize * 3,
-            )
-            .unwrap();
-
-        // Draw frame texture to window
-        canvas.copy(&texture, None, None).unwrap();
-        canvas.present();
-
-        let time_passed = Instant::now() - loop_start;
-        dt_duration += time_passed;
-        st_duration += time_passed;
-
-        if chip8.update_sound_timer(st_duration.as_secs_f64()) {
-            st_duration = Duration::from_secs(0);
-        }
-
-        if chip8.update_delay_timer(dt_duration.as_secs_f64()) {
-            dt_duration = Duration::from_secs(0);
-            let opcode = chip8.get_u16(chip8.registers.pc);
-            chip8.registers.pc += 2;
-            chip8.exec(opcode);
-        }
-    }
+    chip8.run(&mut event_pump);
 }

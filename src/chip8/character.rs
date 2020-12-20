@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::config;
 
 pub static DEFAULT_CHARACTER_SET: [u8; config::CHIP8_CHARACTER_SET_SIZE] = [

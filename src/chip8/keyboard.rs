@@ -29,15 +29,11 @@ impl Keyboard {
         }
     }
 
-    pub fn is_key_down(&self, key: Keycode) -> Option<bool> {
-        if let Some(key) = self.map_key(key) {
-            return Some(self.key_states[*key]);
-        }
-
-        None
+    pub fn is_key_down(&self, key: usize) -> bool {
+        self.key_states[key]
     }
 
-    fn map_key(&self, key: Keycode) -> Option<&usize> {
+    pub fn map_key(&self, key: Keycode) -> Option<&usize> {
         self.key_map.get(&key)
     }
 }
