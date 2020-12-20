@@ -1,7 +1,9 @@
 # Chip8Oxyde
+
 Chip8 emulator written in Rust!
 
-### Usage
+## Usage
+
 chip8oxyde \<program_file\>
 
 All the settings are in [the config module](./src/config.rs)
