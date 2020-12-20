@@ -397,8 +397,8 @@ impl Chip8 {
 
     // 0xCxkk - RND Vx, byte: Generate random number between 0 and 255, then bitwise AND with kk
     fn rnd(&mut self, x: usize, kk: u8) {
-        let rng = rand::thread_rng().gen_range(0..=255);
-        self.registers.v[x] = rng & kk;
+        let rng: u16 = rand::thread_rng().gen_range(0..=255);
+        self.registers.v[x] = rng as u8 & kk;
     }
 
     // 0xDxyn - DRW Vx, Vy, nibble: Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
