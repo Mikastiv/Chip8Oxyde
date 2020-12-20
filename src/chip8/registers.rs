@@ -1,8 +1,8 @@
-use crate::config::CHIP8_DATA_REGISTER_COUNT;
+use crate::config;
 
 #[derive(Debug)]
 pub struct Registers {
-    pub v: [u8; CHIP8_DATA_REGISTER_COUNT],
+    pub v: [u8; config::CHIP8_DATA_REGISTER_COUNT],
     pub i: u16,
     pub dt: u8,
     pub st: u8,
@@ -13,7 +13,7 @@ pub struct Registers {
 impl Registers {
     pub fn new() -> Self {
         Self {
-            v: [0; CHIP8_DATA_REGISTER_COUNT],
+            v: [0; config::CHIP8_DATA_REGISTER_COUNT],
             i: 0,
             dt: 0,
             st: 0,

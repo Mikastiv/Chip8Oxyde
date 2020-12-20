@@ -1,7 +1,10 @@
+use clap::{App, Arg};
 use sdl2::audio::AudioSpecDesired;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::{Color, PixelFormatEnum};
+use std::fs::File;
+use std::io::{Error, Read};
 use std::time::{Duration, Instant};
 
 use chip8::character::Character;
@@ -10,7 +13,32 @@ use chip8::Chip8;
 mod chip8;
 mod config;
 
+fn read_file(file_path: &str) -> Result<Vec<u8>, Error> {
+    let mut file = File::open(file_path)?;
+    let size = file.metadata()?.len();
+    let mut buffer = Vec::with_capacity(size as usize);
+
+    file.read_to_end(&mut buffer)?;
+
+    Ok(buffer)
+}
+
 fn main() {
+    let matches = App::new("Chip8Oxyde")
+        .author("Mikastiv <m.leblanc_3@hotmail.com>")
+        .about("Chip8 emulator written in Rust")
+        .version("0.1.0")
+        .arg(
+            Arg::with_name("Program file")
+                .help("Program to load")
+                .index(1)
+                .required(true),
+        )
+        .get_matches();
+
+    let program_file = matches.value_of("Program file").unwrap();
+    let program_buffer = read_file(program_file).unwrap();
+
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
     let audio_subsystem = sdl_context.audio().unwrap();
@@ -52,7 +80,7 @@ fn main() {
         .unwrap();
 
     let mut chip8 = Chip8::new(audio_device);
-    chip8.load("Hello world!".as_bytes()).unwrap();
+    chip8.load(&program_buffer).unwrap();
 
     chip8.draw_character(0, 0, Character::Num0);
     chip8.draw_character(8, 0, Character::Num1);
@@ -115,12 +143,15 @@ fn main() {
         dt_duration += time_passed;
         st_duration += time_passed;
 
-        if chip8.update_delay_timer(dt_duration.as_secs_f64()) {
-            dt_duration = Duration::from_secs(0);
-        }
-
         if chip8.update_sound_timer(st_duration.as_secs_f64()) {
             st_duration = Duration::from_secs(0);
+        }
+
+        if chip8.update_delay_timer(dt_duration.as_secs_f64()) {
+            dt_duration = Duration::from_secs(0);
+            let opcode = chip8.get_u16(chip8.registers.pc);
+            chip8.registers.pc += 2;
+            chip8.exec(opcode);
         }
     }
 }

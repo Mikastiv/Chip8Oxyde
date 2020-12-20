@@ -1,17 +1,18 @@
-use crate::config::CHIP8_KEY_COUNT;
 use sdl2::keyboard::Keycode;
 use std::collections::HashMap;
 
+use crate::config;
+
 #[derive(Debug)]
 pub struct Keyboard {
-    key_states: [bool; CHIP8_KEY_COUNT],
+    key_states: [bool; config::CHIP8_KEY_COUNT],
     key_map: HashMap<Keycode, usize>,
 }
 
 impl Keyboard {
     pub fn new() -> Self {
         Self {
-            key_states: [false; CHIP8_KEY_COUNT],
+            key_states: [false; config::CHIP8_KEY_COUNT],
             key_map: create_key_map(),
         }
     }
@@ -42,7 +43,7 @@ impl Keyboard {
 }
 
 fn create_key_map() -> HashMap<Keycode, usize> {
-    let mut map = HashMap::with_capacity(CHIP8_KEY_COUNT);
+    let mut map = HashMap::with_capacity(config::CHIP8_KEY_COUNT);
 
     map.insert(Keycode::Num0, 0);
     map.insert(Keycode::Num1, 1);
