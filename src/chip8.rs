@@ -154,6 +154,11 @@ impl Chip8 {
     fn update_sound_timer(&mut self, delta: Duration) {
         self.st_duration += delta;
 
+        if self.audio_playing && self.registers.st == 0 {
+            self.audio_playing = false;
+            self.audio_device.pause();
+        }
+
         if self.st_duration.as_secs_f64() >= config::CHIP8_SOUND_TIMER_FREQ && self.registers.st > 0
         {
             self.st_duration = Duration::from_secs(0);
@@ -164,11 +169,6 @@ impl Chip8 {
             }
 
             self.registers.st -= 1;
-        }
-
-        if self.audio_playing && self.registers.st == 0 {
-            self.audio_playing = false;
-            self.audio_device.pause();
         }
     }
 
@@ -441,14 +441,16 @@ impl Chip8 {
 
     // 0xFx15 - LD DT, Vx: Set delay timer = Vx
     fn ld_dt_vx(&mut self, x: usize) {
-        self.dt_duration = Duration::from_secs(0); // Reset dt duration
         self.registers.dt = self.registers.v[x];
     }
 
     // 0xFx18 - LD ST, Vx: Set sound timer = Vx
     fn ld_st_vx(&mut self, x: usize) {
-        self.st_duration = Duration::from_secs(0); // Reset st duration
         self.registers.st = self.registers.v[x];
+        if self.registers.st > 0 {
+            self.audio_playing = true;
+            self.audio_device.resume();
+        }
     }
 
     // 0xFx1E ADD I, Vx: The values of I and Vx are added, and the results are stored in I
