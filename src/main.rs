@@ -1,11 +1,7 @@
 use clap::{App, Arg};
 use sdl2::audio::AudioSpecDesired;
-use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
-use sdl2::pixels::{Color, PixelFormatEnum};
 use std::fs::File;
 use std::io::{Error, Read};
-use std::time::{Duration, Instant};
 
 use chip8::Chip8;
 
@@ -52,7 +48,7 @@ fn main() {
         .build()
         .unwrap();
 
-    let mut canvas = window.into_canvas().build().unwrap();
+    let canvas = window.into_canvas().build().unwrap();
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     let audio_spec = AudioSpecDesired {

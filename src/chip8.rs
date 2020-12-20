@@ -32,6 +32,10 @@ pub struct Chip8 {
     canvas: Canvas<Window>,
     audio_device: AudioDevice<SquareWave>,
     audio_playing: bool,
+
+    exec_duration: Duration,
+    dt_duration: Duration,
+    st_duration: Duration,
 }
 
 impl Chip8 {
@@ -48,6 +52,10 @@ impl Chip8 {
             canvas,
             audio_device,
             audio_playing: false,
+
+            exec_duration: Duration::from_secs(0),
+            dt_duration: Duration::from_secs(0),
+            st_duration: Duration::from_secs(0),
         }
     }
 
@@ -59,13 +67,12 @@ impl Chip8 {
         let start_addr = config::CHIP8_PROGRAM_LOAD_ADDRESS;
         self.memory[start_addr..start_addr + buf.len()].copy_from_slice(buf);
 
+        self.registers.pc = start_addr as u16;
+
         Ok(())
     }
 
     pub fn run(&mut self, event_pump: &mut EventPump) {
-        let mut dt_duration = Duration::from_secs(0);
-        let mut st_duration = Duration::from_secs(0);
-
         let texture_creator = self.canvas.texture_creator();
         let mut texture = texture_creator
             .create_texture_streaming(
@@ -113,24 +120,17 @@ impl Chip8 {
             self.canvas.present();
 
             let time_passed = Instant::now() - loop_start;
-            dt_duration += time_passed;
-            st_duration += time_passed;
 
-            if self.update_sound_timer(st_duration.as_secs_f64()) {
-                st_duration = Duration::from_secs(0);
-            }
+            self.exec(event_pump);
 
-            if self.update_delay_timer(dt_duration.as_secs_f64()) {
-                dt_duration = Duration::from_secs(0);
-                let opcode = self.get_u16(self.registers.pc);
-                self.registers.pc += 2;
-                self.exec(opcode, event_pump);
-            }
+            self.update_exec_timer(time_passed);
+            self.update_sound_timer(time_passed);
+            self.update_delay_timer(time_passed);
         }
     }
 
     #[allow(dead_code)]
-    pub fn draw_character(&mut self, x: usize, y: usize, c: Character) {
+    fn draw_character(&mut self, x: usize, y: usize, c: Character) {
         self.screen.draw_sprite(
             x,
             y,
@@ -138,43 +138,56 @@ impl Chip8 {
         );
     }
 
-    pub fn update_delay_timer(&mut self, delta: f64) -> bool {
-        if delta >= config::CHIP8_DELAY_TIMER_FREQ && self.registers.dt > 0 {
-            self.registers.dt -= 1;
-            return true;
-        }
-
-        false
+    fn update_exec_timer(&mut self, delta: Duration) {
+        self.exec_duration += delta;
     }
 
-    pub fn update_sound_timer(&mut self, delta: f64) -> bool {
-        if delta >= config::CHIP8_SOUND_TIMER_FREQ && self.registers.st > 0 {
+    fn update_delay_timer(&mut self, delta: Duration) {
+        self.dt_duration += delta;
+        if self.dt_duration.as_secs_f64() >= config::CHIP8_DELAY_TIMER_FREQ && self.registers.dt > 0
+        {
+            self.dt_duration = Duration::from_secs(0);
+            self.registers.dt -= 1;
+        }
+    }
+
+    fn update_sound_timer(&mut self, delta: Duration) {
+        self.st_duration += delta;
+
+        if self.st_duration.as_secs_f64() >= config::CHIP8_SOUND_TIMER_FREQ && self.registers.st > 0
+        {
+            self.st_duration = Duration::from_secs(0);
+
             if !self.audio_playing {
                 self.audio_playing = true;
                 self.audio_device.resume();
             }
 
             self.registers.st -= 1;
-            return true;
         }
 
         if self.audio_playing && self.registers.st == 0 {
             self.audio_playing = false;
             self.audio_device.pause();
         }
-
-        false
     }
 
     fn get_u16(&self, addr: u16) -> u16 {
         (self.memory[addr as usize] as u16) << 8 | (self.memory[addr as usize + 1] as u16)
     }
 
-    fn exec(&mut self, opcode: u16, event_pump: &mut EventPump) {
-        match opcode {
-            0x00E0 => self.cls(),
-            0x00EE => self.ret(),
-            opcode => self.decode_byte(opcode, event_pump),
+    fn exec(&mut self, event_pump: &mut EventPump) {
+        if self.exec_duration.as_secs_f64() >= config::CHIP8_EXEC_FREQ {
+            self.exec_duration = Duration::from_secs(0);
+
+            let opcode = self.get_u16(self.registers.pc);
+            self.registers.pc += 2;
+
+            match opcode {
+                0x00E0 => self.cls(),
+                0x00EE => self.ret(),
+                opcode => self.decode_byte(opcode, event_pump),
+            }
         }
     }
 
@@ -242,13 +255,20 @@ impl Chip8 {
 
     fn wait_for_key(&self, event_pump: &mut EventPump) -> usize {
         for event in event_pump.wait_iter() {
-            if let Event::KeyDown {
-                keycode: Some(key), ..
-            } = event
-            {
-                if let Some(key) = self.keyboard.map_key(key) {
-                    return *key;
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => std::process::exit(0),
+                Event::KeyDown {
+                    keycode: Some(key), ..
+                } => {
+                    if let Some(key) = self.keyboard.map_key(key) {
+                        return *key;
+                    }
                 }
+                _ => {}
             }
         }
 
@@ -421,11 +441,13 @@ impl Chip8 {
 
     // 0xFx15 - LD DT, Vx: Set delay timer = Vx
     fn ld_dt_vx(&mut self, x: usize) {
+        self.dt_duration = Duration::from_secs(0); // Reset dt duration
         self.registers.dt = self.registers.v[x];
     }
 
     // 0xFx18 - LD ST, Vx: Set sound timer = Vx
     fn ld_st_vx(&mut self, x: usize) {
+        self.st_duration = Duration::from_secs(0); // Reset st duration
         self.registers.st = self.registers.v[x];
     }
 
@@ -455,12 +477,12 @@ impl Chip8 {
     // 0xFx55 LD [I], Vx: Store registers V0 through Vx in memory starting at location I
     fn ld_i_vx(&mut self, x: usize) {
         let start_loc = self.registers.i as usize;
-        self.memory[start_loc..start_loc + x].copy_from_slice(&self.registers.v[..=x]);
+        self.memory[start_loc..=start_loc + x].copy_from_slice(&self.registers.v[..=x]);
     }
 
     // 0xFx65 LD Vx, [I]: Read registers V0 through Vx from memory starting at location I
     fn ld_vx_i(&mut self, x: usize) {
         let start_loc = self.registers.i as usize;
-        self.registers.v[..=x].copy_from_slice(&self.memory[start_loc..start_loc + x]);
+        self.registers.v[..=x].copy_from_slice(&self.memory[start_loc..=start_loc + x]);
     }
 }
