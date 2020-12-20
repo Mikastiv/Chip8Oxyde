@@ -59,7 +59,7 @@ fn main() {
 
     let audio_device = audio_subsystem
         .open_playback(None, &audio_spec, |spec| chip8::audio::SquareWave {
-            phase_inc: 440.0 / spec.freq as f32,
+            phase_inc: config::CHIP8_SOUND_NOTE_FREQ / spec.freq as f32,
             phase: 0.0,
             volume: 0.05,
         })

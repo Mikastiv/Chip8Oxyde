@@ -15,6 +15,7 @@ pub const CHIP8_DELAY_TIMER_FREQ: f64 = 1.0 / 60.0;
 pub const CHIP8_SOUND_TIMER_FREQ: f64 = 1.0 / 60.0;
 pub const CHIP8_EXEC_FREQ: f64 = 1.0 / 480.0;
 pub const CHIP8_DEFAULT_SPRITE_HEIGHT: u8 = 5;
+pub const CHIP8_SOUND_NOTE_FREQ: f32 = 440.0;
 
 pub fn create_key_map() -> HashMap<Keycode, usize> {
     let mut map = HashMap::with_capacity(CHIP8_KEY_COUNT);
