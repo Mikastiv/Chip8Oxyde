@@ -119,9 +119,9 @@ impl Chip8 {
             self.canvas.copy(&texture, None, None).unwrap();
             self.canvas.present();
 
-            let time_passed = Instant::now() - loop_start;
-
             self.exec(event_pump);
+            
+            let time_passed = Instant::now() - loop_start;
 
             self.update_exec_timer(time_passed);
             self.update_sound_timer(time_passed);

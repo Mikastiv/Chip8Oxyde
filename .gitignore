@@ -1,3 +1,4 @@
 /target
 /c8games
 SDL2.dll
+SDL2.lib
